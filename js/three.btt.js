@@ -1,5 +1,7 @@
-THREE.BinaryTriangle = function () {
-	
+THREE.BinaryTriangle = function (v1, v2, v3, ln, rn, bn) {
+	this.v1 = v1;
+	this.v2 = v2;
+	this.v3 = v3;
 }
 
 THREE.BinaryTriangle.prototype = {
@@ -13,7 +15,16 @@ THREE.BinaryTriangle.prototype = {
 	rn:null,
 	bn:null,
 	
+	getIndexBuffer : function () {
+		return new THREE.Face3( this.v1, this.v2, this.v3 );
+	},
 	
+	getVariance: function (img) {
+		
+	}
+	
+	
+	/*
 	split: function () {
 		if (this.bn) {
 			if (this.bn.bn != this) {
@@ -67,10 +78,10 @@ THREE.BinaryTriangle.prototype = {
 		this.lc.rc = null;
 		this.rc.lc = null;
 		this.rc.rc = null;
-	}
+	}*/
 }
 
-THREE.BinaryTrianglePatch = function (x, y, size, maxLOD) {
+/*THREE.BinaryTrianglePatch = function (x, z, size, maxLOD) {
 	this.x = x || 0;
 	this.y = y || 0;
 	this.z = z || 0;
@@ -86,7 +97,7 @@ THREE.BinaryTrianglePatch.prototype = {
 			var sideLength = ( 2 * this.maxLOD ) + 1
 			var step = this.size / sideLength;
 			for ( var x = 0; x <= this.size; x+=step ) {
-				for ( var y = 0; y <= this.size; y+=step ) {
+				for ( var z = 0; z <= this.size; z+=step ) {
 					this.geom.vertices.push( new THREE.Vertex( new THREE.Vector3(x, 0.0, y)))
 				}
 			}
@@ -96,7 +107,7 @@ THREE.BinaryTrianglePatch.prototype = {
 			
 		}
 		
-}
+}*/
 
 
 

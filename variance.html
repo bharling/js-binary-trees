@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Three.js Binary Triangle Tree Demo</title>
+		<link rel="stylesheet" href="css/styles.css">
+	</head>
+	<body>
+		
+		
+		
+		
+		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+		<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+		<script src="//cdn.jsdelivr.net/threejs/r62/three.min.js"></script>
+		<script src="js/threestrap.js"></script>
+		<script src="js/three.btt.js"></script>
+		<script type="text/javascript">
+			function createBuffer(width, height) {
+				var buffer = document.createElement('canvas');
+				buffer.width = width;
+				buffer.height = height;
+				return buffer.getContext('2d');
+			}
+			
+			function drawImage(imageObj, ctx) {
+				ctx.drawImage(imageObj, 0, 0);
+			}
+			
+			function getNormalizedHeight ( ctx, x, y ) {
+				var pixel = getPixel(ctx, x, y);
+				return pixel[0] / 255.0;
+			}
+			
+			function getPixel(ctx, x, y ) {
+				x = Math.round(x);
+				y = Math.round(y);
+				return ctx.getImageData(x, y, 1, 1).data;
+			}
+		
+			$(document).ready(function () {
+				var context = createBuffer(257, 257);
+				var img = new Image();
+				img.onload = function () {
+					drawImage(this, context);
+					
+					for ( var x = 0; x<257; x++) {
+						
+					}
+					
+				}
+				img.src="img/hm.jpg";
+			});
+
+		</script>
+	</body>
+</html>
