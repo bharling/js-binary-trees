@@ -16,7 +16,7 @@
 			
 			var s = Snap();
 			
-			var data = "1110010101001100100";
+			var data = "1110010101001100101011101100000";
 			
 			var x = 0.5;
 			var y = 100;
@@ -37,15 +37,35 @@
 					return _tree;
 				} else {
 					s.circle(x*100+"%", y, 5).attr({fill:"#ad9aff"});
-					s.line(x*100+"%", y, (x - (x/size)) * 100 +"%", y+100 ).attr({stroke:"#fff"});
-					s.line(x*100+"%", y, (x + (x/size)) * 100 +"%", y+100 ).attr({stroke:"#fff"});
-					var remainder = traverse(x - (x/size), y + 100, _tree, size*1.4)
-					remainder = traverse(x + (x/size), y+100, remainder, size*2);
+					s.line(x*100+"%", y, (x - (x/size)) * 100 +"%", y+50 ).attr({stroke:"#fff"});
+					s.line(x*100+"%", y, (x + (x/size)) * 100 +"%", y+50 ).attr({stroke:"#fff"});
+					var remainder = traverse(x - (x/size), y + 50, _tree, size*1.4)
+					remainder = traverse(x + (x/size), y+50, remainder, size*2.1);
 					return remainder;
 				}
 			}
 			
 			traverse( 0.5, 100, data, 3);
+			
+			
+			var image = s.image("http://upload.wikimedia.org/wikipedia/commons/5/57/Heightmap.png", 100, 600, 257, 257);
+			
+			var _left = 100, _top = 600, lod = 12;
+			var num_verts = (2*lod) + 1;
+			var step = 257 / num_verts;
+			for (var x=_left; x <= _left+257; x+=step  ) {
+				for (var y=_top; y <= _top+257; y+=step ) {
+					console.log(y);
+					s.circle(x, y, 1).attr({fill:"#f00"});
+				}
+			}
+			
+			
+			
+			
+			
+			
+			
 		</script>
 	</body>
 </html>
