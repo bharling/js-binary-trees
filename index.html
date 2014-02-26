@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Three.js Binary Triangle Tree Demo</title>
+		<link rel="stylesheet" href="css/styles.css">
+	</head>
+	<body>
+		
+		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+		<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+		<script src="//cdn.jsdelivr.net/threejs/r62/three.min.js"></script>
+		<script src="js/threestrap.js"></script>
+		<script src="js/three.btt.js"></script>
+		<script src="//cdn.jsdelivr.net/snap.svg/0.2.0/snap.svg-min.js"></script>
+		<script type="text/javascript">
+			
+			var s = Snap();
+			
+			var data = "1110010101001100100";
+			
+			var x = 0.5;
+			var y = 100;
+			
+			function traverse (x, y, tree, size) {
+				x = x || 0.5;
+				y = y || 100;
+				
+				if (tree.length < 1) {
+					return;
+				}
+				var n = parseInt(tree.substr(0,1));
+				var _tree = tree.substr(1);
+				if (!n) {
+					s.circle(x*100+"%", y, 5).attr({
+						fill:"#bada55"
+					});
+					return _tree;
+				} else {
+					s.circle(x*100+"%", y, 5).attr({fill:"#ad9aff"});
+					s.line(x*100+"%", y, (x - (x/size)) * 100 +"%", y+100 ).attr({stroke:"#fff"});
+					s.line(x*100+"%", y, (x + (x/size)) * 100 +"%", y+100 ).attr({stroke:"#fff"});
+					var remainder = traverse(x - (x/size), y + 100, _tree, size*1.4)
+					remainder = traverse(x + (x/size), y+100, remainder, size*2);
+					return remainder;
+				}
+			}
+			
+			traverse( 0.5, 100, data, 3);
+		</script>
+	</body>
+</html>
