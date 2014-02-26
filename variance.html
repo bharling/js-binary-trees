@@ -11,10 +11,14 @@
 		
 		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 		<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
-		<script src="//cdn.jsdelivr.net/threejs/r62/three.min.js"></script>
+		<script src="js/three.js"></script>
 		<script src="js/threestrap.js"></script>
 		<script src="js/three.btt.js"></script>
 		<script type="text/javascript">
+		
+			var three;
+			var resolution = 17;
+		
 			function createBuffer(width, height) {
 				var buffer = document.createElement('canvas');
 				buffer.width = width;
@@ -36,19 +40,51 @@
 				y = Math.round(y);
 				return ctx.getImageData(x, y, 1, 1).data;
 			}
+			
+			
+			function createGeometry () {
+				var geom = new THREE.Geometry();
+				var nVerts = resolution;
+				var step = 257.0 / nVerts;
+				var start = -(257/2.5);
+				for ( var x=0; x<nVerts; x++ ) {
+					for (var z=0; z<nVerts; z++ ) {
+						geom.vertices.push(
+							new THREE.Vector3(start+(x*step), 0.0, start+(z*step))
+
+						);
+					}
+				}
+				return geom;
+			}
+			
+			
 		
 			$(document).ready(function () {
+				three = THREE.Bootstrap();
 				var context = createBuffer(257, 257);
 				var img = new Image();
 				img.onload = function () {
 					drawImage(this, context);
-					
-					for ( var x = 0; x<257; x++) {
-						
-					}
-					
 				}
 				img.src="img/hm.jpg";
+				
+				var geom = createGeometry();
+				
+				geom.faces.push( new THREE.Face3( 0, resolution*(resolution-1), resolution-1 ) );
+				geom.faces.push( new THREE.Face3( resolution-1, resolution*(resolution-1), resolution*(resolution-1)+resolution-1 ) );
+				
+				var object = new THREE.Mesh( geom, new THREE.MeshBasicMaterial({wireframe:true, color:'blue'}));
+				
+				three.scene.add(object);
+				
+				three.on('update', function () {
+					var t = three.Time.now;
+				  three.camera.position.set(Math.cos(t)*100, 100, Math.sin(t)*100);
+				  three.camera.lookAt(new THREE.Vector3());
+				});
+				
+				
 			});
 
 		</script>
