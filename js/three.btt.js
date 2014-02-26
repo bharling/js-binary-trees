@@ -21,10 +21,10 @@ THREE.BinaryTriangle.prototype = {
 	
 	getVariance: function (img) {
 		
-	}
+	},
 	
 	
-	/*
+	
 	split: function () {
 		if (this.bn) {
 			if (this.bn.bn != this) {
@@ -78,7 +78,7 @@ THREE.BinaryTriangle.prototype = {
 		this.lc.rc = null;
 		this.rc.lc = null;
 		this.rc.rc = null;
-	}*/
+	}
 }
 
 /*THREE.BinaryTrianglePatch = function (x, z, size, maxLOD) {

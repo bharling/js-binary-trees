@@ -17,7 +17,14 @@
 		<script type="text/javascript">
 		
 			var three;
-			var resolution = 17;
+			var resolution = 5;
+			var maxVariance = 0.3;
+
+			// CCW Vertex winding order in THREE.js
+			var NORTH = 0;
+			var WEST = 1;
+			var SOUTH = 2;
+			var EAST = 3;
 		
 			function createBuffer(width, height) {
 				var buffer = document.createElement('canvas');
@@ -59,6 +66,150 @@
 			}
 			
 			
+			function Triangle (v1, v2, v3) {
+				this.v1 = v1;
+				this.v2 = v2;
+				this.v3 = v3;
+			}
+			
+			Triangle.prototype = {
+				constuctor : Triangle,
+				v1 : null,
+				v2 : null,
+				v3 : null,
+				bn : null,
+				ln : null,
+				rn : null,
+				lc : null,
+				rc : null,
+
+				setBottomNeighbour : function (tri) {
+					this.bn = tri;
+				},
+
+				setLeftNeighbour : function (tri) {
+					this.ln = tri;
+				},
+
+				setRightNeighbour : function (tri) {
+					this.rn = tri;
+				},
+
+				getCardinalDirection : function () {
+					// TODO: Try and figure out NWSE direction
+					// Based on indices. Should be possible 
+					// because we know the first vertex is the
+					// apex of the triangle, and the others are
+					// wound in CCW direction.
+
+					if ( this.v1 > this.v2 > this.v3 ) {
+						return NORTH;
+					}
+
+					if (this.v1 > this.v2 < this.v3 ) {
+						return WEST;
+					}
+
+					if (this.v1 < this.v2 < this.v3 ) {
+						return SOUTH;
+					}
+
+					return EAST;
+
+					// TODO: Should test this by setting vertex colors based on these values
+
+				},
+				
+				split: function () {
+					if (this.bn) {
+						if (this.bn.bn != this) {
+							this.bn.split();
+						}
+						this.split2();
+						this.lc.rn = this.bn.rc;
+						this.rc.ln = this.bn.lc;
+						this.bn.lc.rn = this.rc;
+						this.bn.rc.ln = this.lc;
+					} else {
+						this.split2();
+						this.lc.rn = null;
+						this.rc.ln = null;
+					}
+				},
+				
+				split2 : function () {
+					// TODO: How on earth do I get the correct indexes to fill
+					// the constructors for these triangles... ? 
+
+					this.lc = new Triangle((resolution*(resolution-1)+resolution-1)/2, this.v2, this.v3);
+					this.rc = new Triangle((resolution*(resolution-1)+resolution-1)/2, this.v3, this.v2);
+
+					// TODO: ---------- Needs fixing ------------
+
+					this.lc.ln = this.rc;
+					this.rc.rn = this.lc;
+					this.lc.bn = this.ln;
+					
+					if (this.ln) {
+						if (this.ln.bn == this) {
+							this.ln.bn = this.lc;
+						} else {
+							if ( this.ln.ln == this ) {
+								this.ln.ln = this.lc;
+							} else {
+								this.ln.rn = this.lc;
+							}
+						}
+					}
+					
+					this.rc.bn = this.rn;
+					if ( this.rn ) {
+						if ( this.rn.bn == this) {
+							this.rn.bn = this.rc;
+						} else {
+							if ( this.rn.rn == this) {
+								this.rn.rn = this.rc;
+							} else {
+								this.rn.ln = this.rc;
+							}
+						}
+					}
+					
+					this.lc.lc = null;
+					this.lc.rc = null;
+					this.rc.lc = null;
+					this.rc.rc = null;
+				},
+
+				getVariance : function (img, geom) {
+					// we pass in the geometry object to this function
+					// generally the Triangle does not need to reference it
+					// but here it does.
+					var va = geom.vertices[this.v2];
+					var vb = geom.vertices[this.v3];
+
+					// Get the center of the hypotenuse of this triangle.
+					var hypc = va.copy().lerp(vb, 0.5);
+					// Sample the heightmap at this location
+					var sampledHeight = getNormalizedHeight(img, hypc.x, hypc.z );
+					// return the variance, both values are somewhere between 0.0 - 1.0;
+					return Math.abs(hypc.y - sampledHeight);
+				},
+
+				getIndexBuffers : function () {
+					if (!this.lc) {
+						return [new THREE.Face3(this.v1, this.v2, this.v3)];
+						
+					} else {
+						var ret = [];
+						ret = ret.concat(this.lc.getIndexBuffers());
+						ret = ret.concat(this.rc.getIndexBuffers());
+						return ret;
+					}
+					
+				}
+			}
+			
 		
 			$(document).ready(function () {
 				three = THREE.Bootstrap();
@@ -71,8 +222,38 @@
 				
 				var geom = createGeometry();
 				
-				geom.faces.push( new THREE.Face3( 0, resolution*(resolution-1), resolution-1 ) );
-				geom.faces.push( new THREE.Face3( resolution-1, resolution*(resolution-1), resolution*(resolution-1)+resolution-1 ) );
+				// Always start at the triangle apex.
+
+				var triA = new Triangle ( 0, resolution*(resolution-1), resolution-1 );
+				var triB = new Triangle ( resolution*(resolution-1)+resolution-1, resolution-1, resolution*(resolution-1) );
+
+
+
+				//triA.setBottomNeighbour(triB);
+				//triB.setBottomNeighbour(triA);
+
+				//triB.split();
+
+				triA.lc = new Triangle(12, 0, 20);
+				triA.rc = new Triangle(12, 4, 0);
+
+				triB.lc = new Triangle(12, 20, 24);
+				triB.rc = new Triangle(12, 24, 4);
+
+				var indexes = [];
+
+				var triOneIndexes = triA.getIndexBuffers();
+				var triTwoIndexes = triB.getIndexBuffers();
+
+
+				for ( var i = 0; i < triOneIndexes.length; i++ ) {
+					geom.faces.push ( triOneIndexes[i] );
+				}
+
+				for ( var i = 0; i < triTwoIndexes.length; i++ ) {
+					geom.faces.push ( triTwoIndexes[i] );
+				}
+				geom.elementsNeedUpdate = true;
 				
 				var object = new THREE.Mesh( geom, new THREE.MeshBasicMaterial({wireframe:true, color:'blue'}));
 				
@@ -80,7 +261,7 @@
 				
 				three.on('update', function () {
 					var t = three.Time.now;
-				  three.camera.position.set(300, 200, 300);
+				  three.camera.position.set(0, 200, 300);
 				  three.camera.lookAt(new THREE.Vector3());
 				});
 				
