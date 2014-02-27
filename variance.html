@@ -222,8 +222,8 @@
 					
 					
 					
-					if (delta >=0.0) {
-						node.split2();
+					if (delta >=0.00) {
+						node.split();
 						
 						this.recurseVarianceTree(node.lc, centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1);
 						this.recurseVarianceTree(node.rc, centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1);
