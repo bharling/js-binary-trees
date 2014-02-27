@@ -57,15 +57,22 @@
 			TriangleNode.prototype = {
 				constructor: TriangleNode(),
 				hasChildren: false,
+				// left child
 				lc:null,
+				// right child
 				rc:null,
+				// bottom neighbour
 				bn:null,
+				// left neighbour
 				ln:null,
+				// right neighbour
 				rn:null,
 				
 				split: function () {
 					if (this.bn) {
+						
 						if (this.bn.bn != this) {
+							// if we don't share hypotenuse with bottom neighbour, split bottom neighbour
 							this.bn.split();
 						}
 						this.split2();
@@ -236,7 +243,7 @@
 					this.geom.mergeVertices();
 					this.geom.computeFaceNormals();
 					this.geom.computeVertexNormals();
-					this.object = new THREE.Mesh( this.geom, new THREE.MeshNormalMaterial());
+					this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({vertexColors: THREE.VertexColors }));
 					this.object.position = new THREE.Vector3(this.worldX, 0.0, this.worldY);
 				},
 				
@@ -258,7 +265,18 @@
 						this.geom.vertices.push(new THREE.Vector3(apexX, apexHeight, apexY));
 						this.geom.vertices.push(new THREE.Vector3(leftX, leftHeight, leftY));
 						this.geom.vertices.push(new THREE.Vector3(rightX, rightHeight, rightY));
+						
 						this.geom.faces.push(new THREE.Face3(ind+1, ind+2, ind+3));
+						
+						var fIndex = this.geom.faces.length - 1;
+						
+						// color code the vertices by apex, left, right
+						this.geom.faces[fIndex].vertexColors[0] = new THREE.Color(0xFF0000);
+						this.geom.faces[fIndex].vertexColors[1] = new THREE.Color(0x00FF00);
+						this.geom.faces[fIndex].vertexColors[2] = new THREE.Color(0x0000FF);
+						
+						
+						
 					}
 				}
 			}
