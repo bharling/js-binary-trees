@@ -5,6 +5,11 @@
 		<link rel="stylesheet" href="css/styles.css">
 	</head>
 	<body>
+		<div class="heading">
+			<input type="text" id="binstring" />
+		</div>
+		
+		<svg id="tree" style="width:80%;margin:0 auto;height:600px;background:#000;"></svg>
 		
 		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 		<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
@@ -14,7 +19,7 @@
 		<script src="//cdn.jsdelivr.net/snap.svg/0.2.0/snap.svg-min.js"></script>
 		<script type="text/javascript">
 			
-			var s = Snap();
+			var s = Snap('#tree');
 			
 			var data = "11100101001011001101000";
 			
@@ -22,7 +27,22 @@
 			var y = 100;
 			var ystep = 75;
 			
+			$(document).ready(function () {
+				$('#binstring').val(data);
+				$('#binstring').on('keyup', function (e) {
+					console.log(e.keyCode);
+					if (e.keyCode == 48 || e.keyCode == 49 || e.keyCode == 8) {
+						s.clear();
+						traverse(0.5, 100, $('#binstring').val(), 3.0);
+					} else {
+						e.preventDefault();
+						return false;
+					}
+				});
+			});
+			
 			function traverse (x, y, tree, size) {
+				
 				x = x || 0.5;
 				y = y || 100;
 				

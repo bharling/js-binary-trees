@@ -48,7 +48,7 @@
 				var img = new Image();
 				img.onload = function () {
 					drawImage(this, context);
-					var patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257, 8);
+					var patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257, 3);
 					patch.buildVarianceTree(context);
 					patch.buildGeometry(context);
 					three.scene.add(patch.object);

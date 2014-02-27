@@ -16,16 +16,21 @@ THREE.BinaryTriangle.prototype = {
 	ln:null,
 	// right neighbour
 	rn:null,
+	// debug variable
+	//TODO: REMOVETH THIS
+	wonkey: false,
 	
 	split: function () {
 		if (this.bn) {
 			
 			if (this.bn.bn != this) {
 				// if we don't share hypotenuse with bottom neighbour, split bottom neighbour
+				this.wonkey = true;
 				this.bn.split();
 			}
-			this.split2();
 			this.bn.split2();
+			this.split2();
+			
 			this.lc.rn = this.bn.rc;
 			this.rc.ln = this.bn.lc;
 			this.bn.lc.rn = this.rc;
@@ -193,7 +198,7 @@ THREE.BinaryTrianglePatch.prototype = {
 	buildGeometry : function (img) {
 		this.recursiveRender(this.leftRoot, 0, 0, 0, this.height, this.width, 0, img);
 		this.recursiveRender(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, img);
-		this.geom.mergeVertices();
+		//this.geom.mergeVertices();
 		this.geom.computeFaceNormals();
 		this.geom.computeVertexNormals();
 		this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({vertexColors: THREE.VertexColors, wireframe:true }));
@@ -224,9 +229,11 @@ THREE.BinaryTrianglePatch.prototype = {
 			var fIndex = this.geom.faces.length - 1;
 			
 			// color code the vertices by apex, left, right
+			
+			
 			this.geom.faces[fIndex].vertexColors[0] = new THREE.Color(0xFF0000);
-			this.geom.faces[fIndex].vertexColors[1] = new THREE.Color(0x00FF00);
-			this.geom.faces[fIndex].vertexColors[2] = new THREE.Color(0x00FF00);
+			this.geom.faces[fIndex].vertexColors[1] = new THREE.Color(node.wonkey ? 0x0000FF : 0x00FF00);
+			this.geom.faces[fIndex].vertexColors[2] = new THREE.Color(node.wonkey ? 0x0000FF : 0x00FF00);
 			
 			
 			
