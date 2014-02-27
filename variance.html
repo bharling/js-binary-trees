@@ -26,8 +26,6 @@
 			var SOUTH = 2;
 			var EAST = 3;
 
-
-		
 			function createBuffer(width, height) {
 				var buffer = document.createElement('canvas');
 				buffer.width = width;
@@ -51,76 +49,19 @@
 			}
 			
 			
-			function createGeometry () {
-				var geom = new THREE.Geometry();
-				var nVerts = resolution;
-				var step = 257.0 / nVerts;
-				var start = -(257/2.5);
-				for ( var x=0; x<nVerts; x++ ) {
-					for (var z=0; z<nVerts; z++ ) {
-						geom.vertices.push(
-							new THREE.Vector3(start+(x*step), 0.0, start+(z*step))
-
-						);
-					}
-				}
-				return geom;
+			function TriangleNode () {
+				
 			}
 			
 			
-			function Triangle (v1, v2, v3) {
-				this.v1 = v1;
-				this.v2 = v2;
-				this.v3 = v3;
-			}
-			
-			Triangle.prototype = {
-				constuctor : Triangle,
-				v1 : null,
-				v2 : null,
-				v3 : null,
-				bn : null,
-				ln : null,
-				rn : null,
-				lc : null,
-				rc : null,
-
-				setBottomNeighbour : function (tri) {
-					this.bn = tri;
-				},
-
-				setLeftNeighbour : function (tri) {
-					this.ln = tri;
-				},
-
-				setRightNeighbour : function (tri) {
-					this.rn = tri;
-				},
-
-				getCardinalDirection : function () {
-					// TODO: Try and figure out NWSE direction
-					// Based on indices. Should be possible 
-					// because we know the first vertex is the
-					// apex of the triangle, and the others are
-					// wound in CCW direction.
-
-					if ( this.v1 > this.v2 > this.v3 ) {
-						return NORTH;
-					}
-
-					if (this.v1 > this.v2 < this.v3 ) {
-						return WEST;
-					}
-
-					if (this.v1 < this.v2 < this.v3 ) {
-						return SOUTH;
-					}
-
-					return EAST;
-
-					// TODO: Should test this by setting vertex colors based on these values;
-
-				},
+			TriangleNode.prototype = {
+				constructor: TriangleNode(),
+				hasChildren: false,
+				lc:null,
+				rc:null,
+				bn:null,
+				ln:null,
+				rn:null,
 				
 				split: function () {
 					if (this.bn) {
@@ -128,6 +69,7 @@
 							this.bn.split();
 						}
 						this.split2();
+						this.bn.split2();
 						this.lc.rn = this.bn.rc;
 						this.rc.ln = this.bn.lc;
 						this.bn.lc.rn = this.rc;
@@ -140,13 +82,9 @@
 				},
 				
 				split2 : function () {
-					// TODO: How on earth do I get the correct indexes to fill
-					// the constructors for these triangles... ? 
-
-					this.lc = new Triangle((resolution*(resolution-1)+resolution-1)/2, this.v2, this.v3);
-					this.rc = new Triangle((resolution*(resolution-1)+resolution-1)/2, this.v3, this.v2);
-
-					// TODO: ---------- Needs fixing ------------
+					this.lc = new TriangleNode();
+					this.rc = new TriangleNode();
+					this.hasChildren=true;
 
 					this.lc.ln = this.rc;
 					this.rc.rn = this.lc;
@@ -181,34 +119,100 @@
 					this.lc.rc = null;
 					this.rc.lc = null;
 					this.rc.rc = null;
+				}
+			}
+			
+			function Patch(worldX, worldY, width, height) {
+				this.worldX = worldX;
+				this.worldY = worldY;
+				this.width = width;
+				this.height = height;
+				this.leftRoot = new TriangleNode();
+				this.rightRoot = new TriangleNode();
+				this.leftRoot.bn = this.rightRoot;
+				this.rightRoot.bn = this.leftRoot;
+				this.geom = new THREE.Geometry();
+			}
+			
+			Patch.prototype = {
+				constructor: Patch,
+				
+				buildSplits : function (bitstring) {
+					var remainder = this.recursiveSplit(this.leftRoot, bitstring);
+					this.recursiveSplit(this.rightRoot, remainder);
 				},
-
-				getVariance : function (img, geom) {
-					// we pass in the geometry object to this function
-					// generally the Triangle does not need to reference it
-					// but here it does.
-					var va = geom.vertices[this.v2];
-					var vb = geom.vertices[this.v3];
-
-					// Get the center of the hypotenuse of this triangle.
-					var hypc = va.copy().lerp(vb, 0.5);
-					// Sample the heightmap at this location
-					var sampledHeight = getNormalizedHeight(img, hypc.x, hypc.z );
-					// return the variance, both values are somewhere between 0.0 - 1.0;
-					return Math.abs(hypc.y - sampledHeight);
-				},
-
-				getIndexBuffers : function () {
-					if (!this.lc) {
-						return [new THREE.Face3(this.v1, this.v2, this.v3)];
-						
-					} else {
-						var ret = [];
-						ret = ret.concat(this.lc.getIndexBuffers());
-						ret = ret.concat(this.rc.getIndexBuffers());
-						return ret;
+				
+				recursiveSplit : function (node, bitstring) {
+					if (bitstring=="") {
+						return bitstring;
 					}
 					
+					var n = parseInt(bitstring.substr(0,1));
+					var _tree = bitstring.substr(1);
+					if ( n ) {
+						node.split();
+						var remainder = this.recursiveSplit( node.lc, _tree );
+						remainder = this.recursiveSplit( node.rc, remainder );
+						return remainder;
+					} else {
+						return _tree;
+					}
+				},
+				
+				buildVarianceTree : function (heightMap) {
+					console.log(heightMap);
+					this.recurseVarianceTree(this.leftRoot, 0, 0, 0, this.height, this.width, 0, heightMap, 0);
+					this.recurseVarianceTree(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, heightMap, 0);
+				},
+				
+				recurseVarianceTree : function (node, apexX, apexY, leftX, leftY, rightX, rightY, img, depth) {
+					if (depth > 12) {
+						return;
+					}
+					
+					var heightA = getNormalizedHeight(img, leftX, leftY);
+					var heightB = getNormalizedHeight(img, rightX, rightY);
+					var delta = Math.abs(heightA - heightB);
+					
+					
+					
+					if (delta >=0.0) {
+						node.split();
+						var centerX = (leftX+rightX) >> 1;
+						var centerY = (leftY+rightY) >> 1;
+						this.recurseVarianceTree(node.lc, centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1);
+						this.recurseVarianceTree(node.rc, centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1);
+					}
+				},
+				
+				buildGeometry : function (img) {
+					this.recursiveRender(this.leftRoot, 0, 0, 0, this.height, this.width, 0, img);
+					this.recursiveRender(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, img);
+					this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({wireframe:true, color:'blue'}));
+					this.object.position = new THREE.Vector3(this.worldX, 0.0, this.worldY);
+				},
+				
+				recursiveRender : function (node, apexX, apexY, leftX, leftY, rightX, rightY, img) {
+					console.log(img);
+					if (node.hasChildren) {
+						// continue recursive render
+						var centerX = (leftX+rightX) >> 1;
+						var centerY = (leftY+rightY) >> 1;
+						this.recursiveRender(node.lc, centerX, centerY, apexX, apexY, leftX, leftY, img);
+						this.recursiveRender(node.rc, centerX, centerY, rightX, rightY, apexX, apexY, img);
+					} else {
+						// leaf node, render this triangle
+						var ind = this.geom.vertices.length-1;
+						
+						var apexHeight = getNormalizedHeight(img, this.width - apexX, this.height - apexY) * 100.0;
+						var leftHeight = getNormalizedHeight(img, this.width - leftX, this.height - leftY) * 100.0;
+						var rightHeight = getNormalizedHeight(img, this.width - rightX, this.height - rightY) * 100.0;
+						
+						this.geom.vertices.push(new THREE.Vector3(apexX, apexHeight, apexY));
+						this.geom.vertices.push(new THREE.Vector3(leftX, leftHeight, leftY));
+						this.geom.vertices.push(new THREE.Vector3(rightX, rightHeight, rightY));
+						this.geom.faces.push( new THREE.Face3(ind+1, ind+2, ind+3));
+					}
 				}
 			}
 			
@@ -219,80 +223,22 @@
 				var img = new Image();
 				img.onload = function () {
 					drawImage(this, context);
+					var patch = new Patch(-257/2, -257/2, 257, 257)
+					patch.buildVarianceTree(context);
+					patch.buildGeometry(context);
+					three.scene.add(patch.object);
 				}
 				img.src="img/hm.jpg";
 				
-				var geom = createGeometry();
-				
-				// Always start at the triangle apex.
-
-				var triA = new Triangle ( 0, resolution*(resolution-1), resolution-1 );
-				var triB = new Triangle ( resolution*(resolution-1)+resolution-1, resolution-1, resolution*(resolution-1) );
-
-
-
-				//triA.setBottomNeighbour(triB);
-				//triB.setBottomNeighbour(triA);
-
-				//triB.split();
-
-				/*
-					20  21  22  23  24
-
-					15  16  17  18  19
-
-					10  11  12  13  14
-
-					5   6   7   8   9
-
-				+z	0   1   2   3   4
-				^
-				|
-					-> +x
-				
-				Is this right ?
-
-
-				*/
-
-
-
-				triA.lc = new Triangle(12, 0, 20);
-				triA.rc = new Triangle(12, 4, 0);
-
-				triB.lc = new Triangle(12, 20, 24);
-				triB.rc = new Triangle(12, 24, 4);
-
-				var indexes = [];
-
-				var triOneIndexes = triA.getIndexBuffers();
-				var triTwoIndexes = triB.getIndexBuffers();
-
-
-				for ( var i = 0; i < triOneIndexes.length; i++ ) {
-					geom.faces.push ( triOneIndexes[i] );
-				}
-
-				for ( var i = 0; i < triTwoIndexes.length; i++ ) {
-					geom.faces.push ( triTwoIndexes[i] );
-				}
-				geom.computeFaceNormals();
-				geom.computeVertexNormals();
-				
-				var object = new THREE.Mesh( geom, new THREE.MeshBasicMaterial({wireframe:true, color:'blue'}));
-				//var object = new THREE.Mesh( geom, new THREE.MeshNormalMaterial());
-				three.scene.add(object);
 				
 				var axes = new THREE.AxisHelper(100);
 				three.scene.add(axes);
 
 				three.on('update', function () {
 					var t = three.Time.now;
-				  three.camera.position.set(100, 200, -300);
+				  three.camera.position.set(Math.cos(t)*200, 200, Math.sin(t)*200);
 				  three.camera.lookAt(new THREE.Vector3());
 				});
-				
-				
 			});
 
 		</script>
