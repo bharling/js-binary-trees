@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Three.js Binary Triangle Tree Demo</title>
+		<link rel="stylesheet" href="css/styles.css">
+	</head>
+	<body>
+		
+		
+		
+		
+		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+		<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+		<script src="js/three.js"></script>
+		<script src="js/threestrap.js"></script>
+		<script src="js/three.btt.js"></script>
+		<script type="text/javascript">
+
+			function createBuffer(width, height) {
+				var buffer = document.createElement('canvas');
+				buffer.width = width;
+				buffer.height = height;
+				return buffer.getContext('2d');
+			}
+			
+			function drawImage(imageObj, ctx) {
+				ctx.drawImage(imageObj, 0, 0);
+			}
+			
+			function getNormalizedHeight ( ctx, x, y ) {
+				var pixel = getPixel(ctx, x, y);
+				return pixel[0] / 255.0;
+			}
+			
+			function getPixel(ctx, x, y ) {
+				x = Math.round(x);
+				y = Math.round(y);
+				return ctx.getImageData(x, y, 1, 1).data;
+			}
+			
+			
+			
+			
+		
+			$(document).ready(function () {
+				three = THREE.Bootstrap();
+				var context = createBuffer(257, 257);
+				var img = new Image();
+				img.onload = function () {
+					drawImage(this, context);
+					var patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257, 8);
+					patch.buildVarianceTree(context);
+					patch.buildGeometry(context);
+					three.scene.add(patch.object);
+				}
+				img.src="img/hm.jpg";
+				
+				
+				var axes = new THREE.AxisHelper(100);
+				three.scene.add(axes);
+
+				three.on('update', function () {
+					var t = three.Time.now;
+				  three.camera.position.set(Math.cos(t*0.3)*200, 200, Math.sin(t*0.3)*200);
+				  three.camera.lookAt(new THREE.Vector3());
+				});
+			});
+
+		</script>
+	</body>
+</html>
