@@ -79,6 +79,7 @@
 						this.lc.rn = null;
 						this.rc.ln = null;
 					}
+					
 				},
 				
 				split2 : function () {
@@ -159,10 +160,47 @@
 					}
 				},
 				
+				
+				buildVarianceIndex : function (heightMap, lod) {
+					lod = lod || 4;
+					var leftIndex = this.traverseVarianceIndex(0, 0, 0, this.height, this.width, 0, heightMap, 0, lod);
+					var rightIndex = this.traverseVarianceIndex(this.width, this.height, this.width, 0, 0, this.height, heightMap, 0, lod);
+					this.buildSplits(leftIndex);
+				},
+				
+				traverseVarianceIndex : function (apexX, apexY, leftX, leftY, rightX, rightY, img, depth, maxdepth)  {
+					if ( depth > maxdepth ) {
+						return "0";
+					}
+					
+					var heightA = getNormalizedHeight(img, leftX, leftY);
+					var heightB = getNormalizedHeight(img, rightX, rightY);
+					
+					var avgHeight = (heightA + heightB) / 2.0;
+					
+					var centerX = (leftX+rightX) >> 1;
+					var centerY = (leftY+rightY) >> 1;
+					
+					var realHeight = getNormalizedHeight(img, centerX, centerY);
+					
+					var delta = Math.abs(realHeight - avgHeight);
+					
+					var ret = delta > 0 ? "1" : "0";
+					
+					if (ret == "1") {
+						ret += this.traverseVarianceIndex( centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1, maxdepth );
+						ret += this.traverseVarianceIndex( centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1, maxdepth );
+					}
+					return ret;
+				},
+				
+				
+				
 				buildVarianceTree : function (heightMap) {
-					console.log(heightMap);
+					
 					this.recurseVarianceTree(this.leftRoot, 0, 0, 0, this.height, this.width, 0, heightMap, 0);
 					this.recurseVarianceTree(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, heightMap, 0);
+					
 				},
 				
 				recurseVarianceTree : function (node, apexX, apexY, leftX, leftY, rightX, rightY, img, depth) {
@@ -172,15 +210,21 @@
 					
 					var heightA = getNormalizedHeight(img, leftX, leftY);
 					var heightB = getNormalizedHeight(img, rightX, rightY);
-					var heightC = getNormalizedHeight(img, apexX, apexY);
-					var delta = Math.abs(heightA - heightB - heightC);
+					
+					var avgHeight = (heightA + heightB) / 2.0;
+					
+					var centerX = (leftX+rightX) >> 1;
+					var centerY = (leftY+rightY) >> 1;
+					
+					var realHeight = getNormalizedHeight(img, centerX, centerY);
+					
+					var delta = Math.abs(realHeight - avgHeight);
 					
 					
 					
 					if (delta >=0.0) {
-						node.split();
-						var centerX = (leftX+rightX) >> 1;
-						var centerY = (leftY+rightY) >> 1;
+						node.split2();
+						
 						this.recurseVarianceTree(node.lc, centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1);
 						this.recurseVarianceTree(node.rc, centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1);
 					}
@@ -189,12 +233,14 @@
 				buildGeometry : function (img) {
 					this.recursiveRender(this.leftRoot, 0, 0, 0, this.height, this.width, 0, img);
 					this.recursiveRender(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, img);
-					this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({wireframe:true, color:'blue'}));
+					this.geom.mergeVertices();
+					this.geom.computeFaceNormals();
+					this.geom.computeVertexNormals();
+					this.object = new THREE.Mesh( this.geom, new THREE.MeshNormalMaterial());
 					this.object.position = new THREE.Vector3(this.worldX, 0.0, this.worldY);
 				},
 				
 				recursiveRender : function (node, apexX, apexY, leftX, leftY, rightX, rightY, img) {
-					console.log(img);
 					if (node.hasChildren) {
 						// continue recursive render
 						var centerX = (leftX+rightX) >> 1;
@@ -205,14 +251,14 @@
 						// leaf node, render this triangle
 						var ind = this.geom.vertices.length-1;
 						
-						var apexHeight = getNormalizedHeight(img, this.width - apexX, this.height - apexY) * 100.0;
-						var leftHeight = getNormalizedHeight(img, this.width - leftX, this.height - leftY) * 100.0;
-						var rightHeight = getNormalizedHeight(img, this.width - rightX, this.height - rightY) * 100.0;
+						var apexHeight = getNormalizedHeight(img, this.width - apexX, this.height - apexY) * 50.0;
+						var leftHeight = getNormalizedHeight(img, this.width - leftX, this.height - leftY) * 50.0;
+						var rightHeight = getNormalizedHeight(img, this.width - rightX, this.height - rightY) * 50.0;
 						
 						this.geom.vertices.push(new THREE.Vector3(apexX, apexHeight, apexY));
 						this.geom.vertices.push(new THREE.Vector3(leftX, leftHeight, leftY));
 						this.geom.vertices.push(new THREE.Vector3(rightX, rightHeight, rightY));
-						this.geom.faces.push( new THREE.Face3(ind+1, ind+2, ind+3));
+						this.geom.faces.push(new THREE.Face3(ind+1, ind+2, ind+3));
 					}
 				}
 			}
