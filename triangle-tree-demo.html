@@ -5,8 +5,15 @@
 		<link rel="stylesheet" href="css/styles.css">
 	</head>
 	<body>
-		
-		
+		<div class="wrap">
+			<div class="input">
+				<input type="text" id="bintree">
+			</div>
+			
+			<div id="threedee">
+				
+			</div>
+		</div>
 		
 		
 		<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
@@ -39,13 +46,17 @@
 			}
 			
 			
+			var patch = null;
 			
 			
 		
 			$(document).ready(function () {
-				three = THREE.Bootstrap();
-				var context = createBuffer(257, 257);
-				var img = new Image();
+				three = THREE.Bootstrap({
+					init:true,
+					element: $('#threedee')[0]	
+				});
+				//var context = createBuffer(257, 257);
+				/*var img = new Image();
 				img.onload = function () {
 					drawImage(this, context);
 					var patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257, 3);
@@ -53,11 +64,28 @@
 					patch.buildGeometry(context);
 					three.scene.add(patch.object);
 				}
-				img.src="img/hm.jpg";
+				img.src="img/hm.jpg";*/
+				
+				$('#bintree').on('keyup', function (e) {
+					if (e.keyCode == 48 || e.keyCode == 49 || e.keyCode == 8) {
+						if ( patch && patch.ready ) {
+							three.scene.remove(patch.object);
+						}
+						
+						patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257);
+						patch.buildSplits($('#bintree').val());
+						patch.buildGeometry();
+						three.scene.add(patch.object);
+					} else {
+						e.preventDefault();
+						return false;
+					}
+				})
 				
 				
 				var axes = new THREE.AxisHelper(100);
 				three.scene.add(axes);
+				axes.position = new THREE.Vector3(0,50,0);
 
 				three.on('update', function () {
 					var t = three.Time.now;

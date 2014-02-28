@@ -1,5 +1,6 @@
 THREE.BinaryTriangle = function (parent) {
 	this.parent = parent;
+	this.color = '#'+Math.floor(Math.random()*16777215).toString(16);
 }
 
 
@@ -17,12 +18,11 @@ THREE.BinaryTriangle.prototype = {
 	// right neighbour
 	rn:null,
 	// debug variable
-	//TODO: REMOVETH THIS
-	wonkey: false,
+	
+	color: 0xFF0000,
 	
 	split: function () {
 		if (this.bn) {
-			
 			if (this.bn.bn != this) {
 				// if we don't share hypotenuse with bottom neighbour, split bottom neighbour
 				this.wonkey = true;
@@ -96,15 +96,23 @@ THREE.BinaryTrianglePatch = function (worldX, worldY, width, height, maxRecursio
 	this.rightRoot = new THREE.BinaryTriangle(null);
 	this.leftRoot.bn = this.rightRoot;
 	this.rightRoot.bn = this.leftRoot;
-	this.geom = new THREE.Geometry();
+	this.geom = new THREE.Geometry({});
 }
 
 THREE.BinaryTrianglePatch.prototype = {
 	constructor: THREE.BinaryTrianglePatch,
-	
+	ready: false,
 	buildSplits : function (bitstring) {
 		var remainder = this.recursiveSplit(this.leftRoot, bitstring);
 		this.recursiveSplit(this.rightRoot, remainder);
+	},
+	
+	buildSplitsLeft: function (bitstring) {
+		this.recursiveSplit(this.leftRoot, bitstring);
+	},
+	
+	buildSplitsRight: function (bitstring) {
+		this.recursiveSplit(this.rightRoot, bitstring);
 	},
 	
 	recursiveSplit : function (node, bitstring) {
@@ -196,13 +204,15 @@ THREE.BinaryTrianglePatch.prototype = {
 	},
 	
 	buildGeometry : function (img) {
+		img = img || 0;
 		this.recursiveRender(this.leftRoot, 0, 0, 0, this.height, this.width, 0, img);
 		this.recursiveRender(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, img);
 		//this.geom.mergeVertices();
 		this.geom.computeFaceNormals();
 		this.geom.computeVertexNormals();
-		this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({vertexColors: THREE.VertexColors, wireframe:true }));
+		this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({vertexColors: THREE.VertexColors }));
 		this.object.position = new THREE.Vector3(this.worldX, 0.0, this.worldY);
+		this.ready = true;
 	},
 	
 	recursiveRender : function (node, apexX, apexY, leftX, leftY, rightX, rightY, img) {
@@ -216,9 +226,9 @@ THREE.BinaryTrianglePatch.prototype = {
 			// leaf node, render this triangle
 			var ind = this.geom.vertices.length-1;
 			
-			var apexHeight = getNormalizedHeight(img, this.width - apexX, this.height - apexY) * 50.0;
-			var leftHeight = getNormalizedHeight(img, this.width - leftX, this.height - leftY) * 50.0;
-			var rightHeight = getNormalizedHeight(img, this.width - rightX, this.height - rightY) * 50.0;
+			var apexHeight = img ? getNormalizedHeight(img, this.width - apexX, this.height - apexY) * 50.0 : 0.0;
+			var leftHeight = img ? getNormalizedHeight(img, this.width - leftX, this.height - leftY) * 50.0 : 0.0;
+			var rightHeight = img ? getNormalizedHeight(img, this.width - rightX, this.height - rightY) * 50.0 : 0.0;
 			
 			this.geom.vertices.push(new THREE.Vector3(apexX, apexHeight, apexY));
 			this.geom.vertices.push(new THREE.Vector3(leftX, leftHeight, leftY));
@@ -231,9 +241,13 @@ THREE.BinaryTrianglePatch.prototype = {
 			// color code the vertices by apex, left, right
 			
 			
-			this.geom.faces[fIndex].vertexColors[0] = new THREE.Color(0xFF0000);
-			this.geom.faces[fIndex].vertexColors[1] = new THREE.Color(node.wonkey ? 0x0000FF : 0x00FF00);
-			this.geom.faces[fIndex].vertexColors[2] = new THREE.Color(node.wonkey ? 0x0000FF : 0x00FF00);
+			//this.geom.faces[fIndex].vertexColors[0] = new THREE.Color(0xFF0000);
+			//this.geom.faces[fIndex].vertexColors[1] = new THREE.Color(node.wonkey ? 0x0000FF : 0x00FF00);
+			//this.geom.faces[fIndex].vertexColors[2] = new THREE.Color(node.wonkey ? 0x0000FF : 0x00FF00);
+			
+			this.geom.faces[fIndex].vertexColors[0] = new THREE.Color(node.color);
+			this.geom.faces[fIndex].vertexColors[1] = new THREE.Color(node.color);
+			this.geom.faces[fIndex].vertexColors[2] = new THREE.Color(node.color);
 			
 			
 			
