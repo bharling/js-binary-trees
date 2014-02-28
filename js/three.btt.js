@@ -44,6 +44,11 @@ THREE.BinaryTriangle.prototype = {
 	},
 	
 	split2 : function () {
+		
+		if (this.hasChildren) {
+			return;
+		}
+		
 		this.lc = new THREE.BinaryTriangle(this);
 		this.rc = new THREE.BinaryTriangle(this);
 		this.hasChildren=true;
@@ -85,9 +90,7 @@ THREE.BinaryTriangle.prototype = {
 }
 
 THREE.BinaryTrianglePatch = function (worldX, worldY, width, height, maxRecursion) {
-	
 	this.maxRecursion = maxRecursion || 4;
-	
 	this.worldX = worldX;
 	this.worldY = worldY;
 	this.width = width;
@@ -135,15 +138,16 @@ THREE.BinaryTrianglePatch.prototype = {
 	
 	buildVarianceIndex : function (heightMap, lod) {
 		lod = lod || 4;
+		
 		var leftIndex = this.traverseVarianceIndex(0, 0, 0, this.height, this.width, 0, heightMap, 0, lod);
+		
 		var rightIndex = this.traverseVarianceIndex(this.width, this.height, this.width, 0, 0, this.height, heightMap, 0, lod);
-		this.buildSplits(leftIndex);
+		
+		return rightIndex + leftIndex;
 	},
 	
 	traverseVarianceIndex : function (apexX, apexY, leftX, leftY, rightX, rightY, img, depth, maxdepth)  {
-		if ( depth > maxdepth ) {
-			return "0";
-		}
+		
 		
 		var heightA = getNormalizedHeight(img, leftX, leftY);
 		var heightB = getNormalizedHeight(img, rightX, rightY);
@@ -153,16 +157,26 @@ THREE.BinaryTrianglePatch.prototype = {
 		var centerX = (leftX+rightX) >> 1;
 		var centerY = (leftY+rightY) >> 1;
 		
+		
 		var realHeight = getNormalizedHeight(img, centerX, centerY);
 		
-		var delta = Math.abs(realHeight - avgHeight);
+		var v = Math.abs(realHeight - avgHeight);
 		
-		var ret = delta > 0 ? "1" : "0";
-		
-		if (ret == "1") {
-			ret += this.traverseVarianceIndex( centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1, maxdepth );
-			ret += this.traverseVarianceIndex( centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1, maxdepth );
+		if ( depth < maxdepth ) {
+			v = Math.max(v, this.traverseVarianceIndex( centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1, maxdepth ));
+			v = Math.max(v, this.traverseVarianceIndex( centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1, maxdepth ));
 		}
+		
+		var ret = v > 0.02 ? "1" : "0";
+		
+		if ( depth >= maxdepth && ret == "0") {
+			return "0";
+		}
+		
+		
+		ret += this.traverseVarianceIndex( centerX, centerY, apexX, apexY, leftX, leftY, img, depth+1, maxdepth );
+		ret += this.traverseVarianceIndex( centerX, centerY, rightX, rightY, apexX, apexY, img, depth+1, maxdepth );
+
 		return ret;
 	},
 	
@@ -203,14 +217,15 @@ THREE.BinaryTrianglePatch.prototype = {
 		}
 	},
 	
-	buildGeometry : function (img) {
+	buildGeometry : function (img, material) {
+		material = material || new THREE.MeshBasicMaterial({vertexColors:THREE.VertexColors});
 		img = img || 0;
 		this.recursiveRender(this.leftRoot, 0, 0, 0, this.height, this.width, 0, img);
 		this.recursiveRender(this.rightRoot, this.width, this.height, this.width, 0, 0, this.height, img);
-		//this.geom.mergeVertices();
+		this.geom.mergeVertices();
 		this.geom.computeFaceNormals();
 		this.geom.computeVertexNormals();
-		this.object = new THREE.Mesh( this.geom, new THREE.MeshBasicMaterial({vertexColors: THREE.VertexColors }));
+		this.object = new THREE.Mesh( this.geom, material);
 		this.object.position = new THREE.Vector3(this.worldX, 0.0, this.worldY);
 		this.ready = true;
 	},
@@ -226,9 +241,11 @@ THREE.BinaryTrianglePatch.prototype = {
 			// leaf node, render this triangle
 			var ind = this.geom.vertices.length-1;
 			
-			var apexHeight = img ? getNormalizedHeight(img, this.width - apexX, this.height - apexY) * 50.0 : 0.0;
-			var leftHeight = img ? getNormalizedHeight(img, this.width - leftX, this.height - leftY) * 50.0 : 0.0;
-			var rightHeight = img ? getNormalizedHeight(img, this.width - rightX, this.height - rightY) * 50.0 : 0.0;
+			var heightScale = 100.0;
+			
+			var apexHeight = img ? getNormalizedHeight(img, this.width - apexX, this.height - apexY) * heightScale : 0.0;
+			var leftHeight = img ? getNormalizedHeight(img, this.width - leftX, this.height - leftY) * heightScale : 0.0;
+			var rightHeight = img ? getNormalizedHeight(img, this.width - rightX, this.height - rightY) * heightScale : 0.0;
 			
 			this.geom.vertices.push(new THREE.Vector3(apexX, apexHeight, apexY));
 			this.geom.vertices.push(new THREE.Vector3(leftX, leftHeight, leftY));

@@ -2,17 +2,42 @@
 <html>
 	<head>
 		<title>Three.js Binary Triangle Tree Demo</title>
+		<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
 		<link rel="stylesheet" href="css/styles.css">
 	</head>
 	<body>
-		<div class="wrap">
-			<div class="input">
-				<input type="text" id="bintree">
+		<div class="container">
+			
+			<div class="panel" style="padding:5px;">
+				<h2>Binary Triangle Tree Playground</h2>
+				<div class="input">
+					<div class="form-group">
+						<label>Enter a manual bitstring (eg:11001010111010)</label>
+						<input type="text" id="bintree" class="form-control">
+					</div>
+					
+					<p>Or try to generate from a sample heightmap image.</p>
+					<div class="form-group">
+						
+						<label>Max LOD recursion (warning, more than 6 === LONG WAIT):</label>
+						<input type="number" class="form-control" value="4" id="lod">
+					</div>
+					<button id="generate" class="btn btn-info">Generate From Heightmap Image</button>
+				</div>
+			</div>
+			
+			<div id="snap" style="margin-top:10px;position:relative;">
+				<svg id="treeLeft" style="width:50%;height:300px;background:#dedede;float:left;"></svg>
+				<svg id="treeRight" style="width:50%;height:300px;background:#dedede;"></svg>
+				
 			</div>
 			
 			<div id="threedee">
 				
 			</div>
+			
+			
+			
 		</div>
 		
 		
@@ -21,6 +46,7 @@
 		<script src="js/three.js"></script>
 		<script src="js/threestrap.js"></script>
 		<script src="js/three.btt.js"></script>
+		<script src="//cdn.jsdelivr.net/snap.svg/0.2.0/snap.svg-min.js"></script>
 		<script type="text/javascript">
 
 			function createBuffer(width, height) {
@@ -48,13 +74,82 @@
 			
 			var patch = null;
 			
+			var snapLeft = Snap('#treeLeft');
+			var snapRight = Snap('#treeRight');
 			
+			var ystep = 20;
+			
+			function traverse (elem, x, y, tree, size) {
+				
+				x = x || 0.5;
+				y = y || 20;
+				
+				if (tree==undefined || tree.length < 1) {
+					return "";
+				}
+
+				var n = parseInt(tree.substr(0,1));
+				var _tree = tree.substr(1);
+				if (!n) {
+					elem.circle(x*100+"%", y, 5).attr({
+						fill:"#bada55"
+					});
+					return _tree;
+				} else {
+					elem.circle(x*100+"%", y, 5).attr({fill:"#ad9aff"});
+					elem.line(x*100+"%", y, (x - (x/size)) * 100 +"%", y+ystep ).attr({stroke:"#9a9a9a"});
+					elem.line(x*100+"%", y, (x + (x/size)) * 100 +"%", y+ystep ).attr({stroke:"#9a9a9a"});
+					var remainder = traverse(elem, x - (x/size), y + ystep, _tree, size*1.4)
+					remainder = traverse(elem, x + (x/size), y+ystep, remainder, size*2.1);
+					return remainder;
+				}
+			}
+			
+			
+			var context = createBuffer(257, 257);
 		
 			$(document).ready(function () {
 				three = THREE.Bootstrap({
 					init:true,
 					element: $('#threedee')[0]	
 				});
+				
+				$('#generate').on("click", function () {
+					var img = new Image();
+					img.onload = function () {
+						drawImage(this, context);
+						if ( patch && patch.ready) {
+							three.scene.remove(patch.object);
+						}
+						
+						
+						
+						
+						patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257);
+						
+						var bs = patch.buildVarianceIndex(
+							context, 
+							parseInt(
+								$('#lod').val()
+								)
+						);
+
+						
+						snapLeft.clear();
+						snapRight.clear();
+						var remainder = traverse(snapLeft, 0.5, 20, bs, 3.0);
+						traverse(snapRight, 0.5, 20, remainder, 3.0);
+						
+						$('#bintree').val(bs);
+						
+						patch.buildSplits(bs);
+						patch.buildGeometry(context, new THREE.MeshNormalMaterial());
+						three.scene.add(patch.object);
+					}
+					
+					img.src="img/hm.jpg";
+				})
+				
 				//var context = createBuffer(257, 257);
 				/*var img = new Image();
 				img.onload = function () {
@@ -76,6 +171,12 @@
 						patch.buildSplits($('#bintree').val());
 						patch.buildGeometry();
 						three.scene.add(patch.object);
+						
+						snapLeft.clear();
+						snapRight.clear();
+						var remainder = traverse(snapLeft, 0.5, 100, $('#bintree').val(), 3.0);
+						traverse(snapRight, 0.5, 100, remainder, 3.0);
+						
 					} else {
 						e.preventDefault();
 						return false;
