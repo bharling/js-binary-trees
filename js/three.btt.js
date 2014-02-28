@@ -251,6 +251,13 @@ THREE.BinaryTrianglePatch.prototype = {
 			this.geom.vertices.push(new THREE.Vector3(leftX, leftHeight, leftY));
 			this.geom.vertices.push(new THREE.Vector3(rightX, rightHeight, rightY));
 			
+			this.geom.faceVertexUvs[0].push([
+				new THREE.Vector2( apexX / this.width, apexY / this.height ),
+				new THREE.Vector2( leftX / this.width, leftY / this.height ),
+				new THREE.Vector2( rightX / this.width, rightY / this.height )
+			]);
+			
+			
 			this.geom.faces.push(new THREE.Face3(ind+1, ind+2, ind+3));
 			
 			var fIndex = this.geom.faces.length - 1;
