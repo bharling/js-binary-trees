@@ -22,7 +22,9 @@
 						<label>Max LOD recursion (warning, more than 6 === LONG WAIT):</label>
 						<input type="number" class="form-control" value="4" id="lod">
 					</div>
-					<button id="generate" class="btn btn-info">Generate From Heightmap Image</button>
+					<button id="generate" class="btn btn-info">Generate variance from heightmap (slow)</button>
+					<button id="build" class="btn btn-info">Use pre-generated variance</button>
+					<button id="tiles" class="btn btn-success">Load a Bunch of Tiles</button>
 				</div>
 			</div>
 			
@@ -40,6 +42,8 @@
 			
 		</div>
 		
+		<script id="variance_precomputed" type="text"></script>
+		
 		
 		<script id="vertex" type="text/x-glsl-vert">
         	
@@ -55,9 +59,9 @@
         	
         	void main () {
         		vec4 v = vec4(position, 1.0);
-        		oUv.x = 1.0-uv.x;
-        		oUv.y = uv.y;
-        		v.y += texture2D( heightMap, clamp(oUv.st, 0.0, 1.0)).r * (height);
+        		oUv.x = uv.x;
+        		oUv.y = 1.0-uv.y;
+        		v.y += texture2D( heightMap, clamp(oUv.st, 0.0, 1.0)).r * height;
         		gl_Position = projectionMatrix * modelViewMatrix * v;
         		v_position = gl_Position;
         	}
@@ -71,7 +75,7 @@
         	uniform sampler2D heightMap;
         	void main () {
         		
-        		gl_FragColor = vec4(oUv.x, oUv.y, 0.0, 1.0);
+        		gl_FragColor = vec4(0.8, 0.8, 0.2, 1.0);
         		
         	}
         	
@@ -109,7 +113,7 @@
 			
 			
 			var patch = null;
-			
+			var loaded_variance;
 			var snapLeft = Snap('#treeLeft');
 			var snapRight = Snap('#treeRight');
 			
@@ -145,7 +149,7 @@
 			var context = createBuffer(257, 257);
 			
 			var uniforms = {
-				heightMap: { type: 't', value: THREE.ImageUtils.loadTexture( "img/hm.jpg" )},
+				heightMap: { type: 't', value: THREE.ImageUtils.loadTexture( "py/hm2.jpg" )},
 				height: { type: 'f', value: 100.0 },
 				uvX: { type: 'i', value: 0 },
 				uvY: { type: 'i', value: 0 },
@@ -163,34 +167,71 @@
 				wireframe: true,
 		
 			});
-		
-			$(document).ready(function () {
-				three = THREE.Bootstrap({
-					init:true,
-					element: $('#threedee')[0]	
+			
+			
+			
+			function getMaterial ( imgPath ) {
+				return new THREE.ShaderMaterial({
+					uniforms : {
+						heightMap: { type: 't', value: THREE.ImageUtils.loadTexture( "py/" + imgPath )},
+						height: { type: 'f', value: 100.0 },
+						uvX: { type: 'i', value: 0 },
+						uvY: { type: 'i', value: 0 },
+						cellNumber: { type:'i', value: 1 }
+					},
+					vertexShader: _vertShader,
+					fragmentShader: _fragShader,
+					wireframe: true,
+				})
+			}
+			
+			
+			var lod_objects = [];
+			
+			function tiles () {
+				$('#snap').hide();
+				$.ajax({
+					url:'py/data.json',
+					dataType:'json'
+				}).done(function (data) {
+					for ( var i=0; i<data.length;i++ ) {
+						var mat = getMaterial(data[i].filename);
+						var cpatch = new THREE.BinaryTrianglePatch(data[i].x, data[i].y, 257, 257);
+						cpatch.createLodGeometry(data[i].variance, data[i].low_detail, mat);
+						//cpatch.buildSplits(data[i].variance);
+						//cpatch.buildGeometry(null, mat);
+						three.scene.add(cpatch.object);
+						lod_objects.push(cpatch.object);
+						
+					}
 				});
+			}
+			
+			
+					
+			
+			function doBuild ( from_script ) {
+				from_script = from_script == undefined ? false : from_script;
 				
-				$('#generate').on("click", function () {
-					var img = new Image();
+				var img = new Image();
 					img.onload = function () {
 						drawImage(this, context);
 						if ( patch && patch.ready) {
 							three.scene.remove(patch.object);
 						}
-						
-						
-						
-						
 						patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257);
+						if (!from_script) {
+							var bs = patch.buildVarianceIndex(
+								context, 
+								parseInt(
+									$('#lod').val()
+									)
+							);
+						} else {
+							var bs=loaded_variance;
+						}
 						
-						/*var bs = patch.buildVarianceIndex(
-							context, 
-							parseInt(
-								$('#lod').val()
-								)
-						);*/
-						
-						var bs = "111101111000110010010100111011010000011111100011101001100010100010111111001001010011001001110010011100011001001011010011000111100110100011100100101001110011101000011011001001001110111100011001001010011101101000001101011011000011110001110010010100011111100100111100011001001010011101101000010100111100010110110000111101000111001001010011001001111110011100100010100111100011001001101100010011111101001100010100111010011000110100110000101111000110100110001100100111100010110110000111100011100100101001110001010100";
+
 
 						
 						snapLeft.clear();
@@ -206,18 +247,33 @@
 					}
 					
 					img.src="img/hm.jpg";
-				})
+			}
+		
+			$(document).ready(function () {
 				
-				//var context = createBuffer(257, 257);
-				/*var img = new Image();
-				img.onload = function () {
-					drawImage(this, context);
-					var patch = new THREE.BinaryTrianglePatch(-257/2, -257/2, 257, 257, 3);
-					patch.buildVarianceTree(context);
-					patch.buildGeometry(context);
-					three.scene.add(patch.object);
-				}
-				img.src="img/hm.jpg";*/
+				$.ajax({
+					url:'py/v.txt',
+					dataType:'text'
+				}).done(function(data){
+					loaded_variance = data;
+				});
+				
+				three = THREE.Bootstrap({
+					init:true,
+					element: $('#threedee')[0]	
+				});
+				
+				$('#tiles').on('click', function () {
+					tiles();
+				});
+				
+				$('#generate').on("click", function () {
+					doBuild(false);
+				});
+				
+				$('#build').on("click", function () {
+					doBuild(true);
+				});
 				
 				$('#bintree').on('keyup', function (e) {
 					if (e.keyCode == 48 || e.keyCode == 49 || e.keyCode == 8) {
@@ -248,8 +304,13 @@
 
 				three.on('update', function () {
 					var t = three.Time.now;
-				  three.camera.position.set(Math.cos(t*0.3)*200, 200, Math.sin(t*0.3)*200);
-				  three.camera.lookAt(new THREE.Vector3());
+				  three.camera.position.set(642+Math.cos(t*0.3)*400, 500, 642+Math.sin(t*0.3)*400);
+				  three.camera.lookAt(new THREE.Vector3(642.0,0.0,642.0));
+				  
+				  for ( var i = 0; i<lod_objects.length; i++ ) {
+				  	lod_objects[i].update(three.camera);
+				  }
+				  //THREE.SceneUtils.traverseHierarchy( three.scene, function ( node ) { if ( node instanceof THREE.LOD ) node.update( three.camera ) } );
 				});
 			});
 
