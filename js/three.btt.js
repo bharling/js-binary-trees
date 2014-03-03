@@ -138,6 +138,7 @@ THREE.BinaryTrianglePatch = function (worldX, worldY, width, height, maxRecursio
 	this.geom = new THREE.Geometry({});
 	this.lods = [];
 	this.worldCenter = new THREE.Vector3(worldX + (width >> 1), 0.0, worldY + (height>>1));
+	this.object = null;
 	
 }
 
@@ -152,28 +153,21 @@ THREE.BinaryTrianglePatch.prototype = {
 		this.rightRoot.bn = this.leftRoot;
 	},
 	
-	createLodGeometry : function (variance_hi, variance_low, material) {
-		this.object = new THREE.LOD();
+	createLodGeometry : function (variance, distance, material) {
+		if (!this.object) {
+			this.object = new THREE.LOD();
+			this.object.position.x = this.worldX;
+			this.object.position.z = this.worldY;
+			this.object.matrixAutoUpdate = false;
 		
-		// hi
+		}
+		
 		this.resetRoots();
-		this.buildSplits(variance_hi);
+		this.buildSplits(variance);
 		var mesh_hi = this.buildLODMesh(material);
 		mesh_hi.updateMatrix();
-		this.object.addLevel(mesh_hi, 300);
-		
-		// low
-		this.resetRoots();
-		this.buildSplits(variance_low);
-		var mesh_low = this.buildLODMesh(material);
-		mesh_low.updateMatrix();
-		this.object.addLevel(mesh_low, 800);
-		
-		this.object.position.x = this.worldX;
-		this.object.position.z = this.worldY;
-		
+		this.object.addLevel(mesh_hi, distance);
 		this.object.updateMatrix();
-		this.object.matrixAutoUpdate = false;
 		
 		
 	},

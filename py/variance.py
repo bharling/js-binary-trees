@@ -41,7 +41,9 @@ def buildVarianceTree( img, max_lod = 4 ):
     return left + right
 
 
-json_template = '\t{ \n\t\t"filename" : "%s", \n\t\t"variance": "%s",\n\t\t"low_detail": "%s",\n\t\t"x":%d,\n\t\t"y":%d  \n\t}'
+json_template = '\t{ \n\t\t"filename" : "%s", \n\t\t"lods": [%s\n\t\t],\n\t\t"x":%d,\n\t\t"y":%d  \n\t}'
+
+detail_levels_template = '\n\t\t\t{\n\t\t\t\t"tree":"%s",\n\t\t\t\t"dist":%s\n\t\t\t}'
 
 
 def buildTiles( imgPath, size=257 ):
@@ -52,9 +54,8 @@ def buildTiles( imgPath, size=257 ):
         raise Exception("tile size does not fit the image")
     
     num_tiles = width / size
-    
     tilesdata = []
-    
+    detail_levels = [(16, 200), (6, 400), (3, 800)]
     x = y = 0
     for x in range(num_tiles):
         for y in range(num_tiles):
@@ -62,11 +63,20 @@ def buildTiles( imgPath, size=257 ):
             _y = y*size
             tile = img.crop((_x,_y,_x+size,_y+size))
             filename = "%d_%d.png" % ( x, y )
+            
+            details = []
+            
             tile.save(filename, 'PNG')
             print "building tree for %d x %d" % ( x,y )
-            variance_hi = buildVarianceTree(tile, 10)
-            variance_low = buildVarianceTree(tile, 6)
-            tilesdata.append(json_template % (filename, variance_hi, variance_low, _x, _y))
+            
+            for item in detail_levels:
+                depth, distance = item
+                variance = buildVarianceTree(tile, depth)
+                
+                details.append(detail_levels_template % ( variance, distance ))
+            
+            lod = ",\n".join(details)
+            tilesdata.append(json_template % (filename, lod, _x, _y))
     with open("data.json", "w") as f:
         f.write("[\n" + ",\n".join(tilesdata) + "\n]")
     
