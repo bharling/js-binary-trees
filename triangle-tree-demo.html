@@ -48,22 +48,20 @@
 		<script id="vertex" type="text/x-glsl-vert">
         	
         	varying vec2 oUv;
-        	varying vec4 v_position;
-
-        	
         	uniform sampler2D heightMap;
-			uniform int uvX;
-			uniform int uvY;
 			uniform float height;
-			uniform int cellNumber;
+			
+			
+			
         	
         	void main () {
         		vec4 v = vec4(position, 1.0);
         		oUv.x = uv.x;
         		oUv.y = 1.0-uv.y;
-        		v.y += texture2D( heightMap, clamp(oUv.st, 0.0, 1.0)).r * height;
+        		float nheight = texture2D(heightMap, oUv).x;
+        		v.y += nheight * height;
         		gl_Position = projectionMatrix * modelViewMatrix * v;
-        		v_position = gl_Position;
+
         	}
         	
         	
@@ -72,10 +70,21 @@
 		<script id="fragment" type="text/x-glsl-frag">
         	varying vec2 oUv;
         	varying vec4 vcolor;
+        	const vec2 size = vec2(2.0/257.0,0.0);
+			const vec3 off = vec3(-1.0/257.0,0,1.0/257.0);
         	uniform sampler2D heightMap;
+        	
+        	
+        	
+        	
         	void main () {
-        		
-        		gl_FragColor = vec4(0.8, 0.8, 0.2, 1.0);
+        		float s01 = texture2D(heightMap, oUv+off.xy).x;
+			    float s21 = texture2D(heightMap, oUv+off.zy).x;
+			    float s10 = texture2D(heightMap, oUv+off.yx).x;
+			    float s12 = texture2D(heightMap, oUv+off.yz).x;
+			    vec3 va = normalize( vec3( size.xy, s21-s01 ));
+			    vec3 vb = normalize( vec3( size.yx, s12-s10 ));
+        		gl_FragColor = vec4( cross(va,vb), 1.0); 
         		
         	}
         	
@@ -181,7 +190,7 @@
 					},
 					vertexShader: _vertShader,
 					fragmentShader: _fragShader,
-					wireframe: true,
+					wireframe: false,
 				})
 			}
 			
