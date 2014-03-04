@@ -2,8 +2,16 @@ import argparse
 from PIL import Image
 import math
 
+def rgToFloat(v):
+    r,g = v
+    fromFixed = 256.0/255
+    return r*fromFixed/1 + g*fromFixed/(255)
+
+
 def getHeight(x,y,img):
-    return img.getpixel((x,y))[0] / 255.0
+    pix = img.getpixel((x,y))
+    return rgToFloat((pix[0], pix[1]))
+    #return img.getpixel((x,y))[3] / 255.0
 
 
 def computeVariance( apexX, apexY, leftX, leftY, rightX, rightY, img ):
@@ -23,7 +31,7 @@ def traverseVariance( apexX, apexY, leftX, leftY, rightX, rightY, img, depth, ma
         v = max(v, computeVariance( centerX, centerY, apexX, apexY, leftX, leftY, img ));
         v = max(v, computeVariance( centerX, centerY, rightX, rightY, apexX, apexY, img ));
     ret = "0"
-    if v > 0.01:
+    if v > 2.0:
         ret = "1"
     if ret == "0" or depth >= maxdepth:
         return "0"
@@ -55,7 +63,7 @@ def buildTiles( imgPath, size=257 ):
     
     num_tiles = width / size
     tilesdata = []
-    detail_levels = [(16, 200), (6, 400), (3, 800)]
+    detail_levels = [(12, 200), (8, 400), (4, 800)]
     x = y = 0
     for x in range(num_tiles):
         for y in range(num_tiles):
@@ -84,5 +92,5 @@ def buildTiles( imgPath, size=257 ):
 
     
 if __name__=="__main__":
-    buildTiles("hm2.jpg")
+    buildTiles("heightmap.png")
     
