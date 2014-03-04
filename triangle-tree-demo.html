@@ -25,6 +25,7 @@
 					<button id="generate" class="btn btn-info">Generate variance from heightmap (slow)</button>
 					<button id="build" class="btn btn-info">Use pre-generated variance</button>
 					<button id="tiles" class="btn btn-success">Load a Bunch of Tiles</button>
+					<button id="wireframe" class="btn btn-info">Toggle Wireframes</button>
 				</div>
 			</div>
 			
@@ -231,7 +232,7 @@
 				return new THREE.ShaderMaterial({
 					uniforms : {
 						heightMap: { type: 't', value: THREE.ImageUtils.loadTexture( "py/" + imgPath )},
-						height: { type: 'f', value: 150.0 },
+						height: { type: 'f', value: 300.0 },
 						uvX: { type: 'i', value: 0 },
 						uvY: { type: 'i', value: 0 },
 						cellNumber: { type:'i', value: 1 }
@@ -305,6 +306,16 @@
 					
 					img.src="img/hm.jpg";
 			}
+			
+			
+			function toggleWireframe () {
+				for ( var i=0; i < lod_objects.length; i++ ) {
+					for ( var j=0; j< lod_objects[i].objects.length; j++ ) {
+						lod_objects[i].objects[j].object.material.wireframe = !lod_objects[i].objects[j].object.material.wireframe;
+					}
+				}
+			}
+			
 		
 			$(document).ready(function () {
 				
@@ -326,6 +337,10 @@
 				
 				$('#generate').on("click", function () {
 					doBuild(false);
+				});
+				
+				$('#wireframe').on('click', function () {
+					toggleWireframe();
 				});
 				
 				$('#build').on("click", function () {

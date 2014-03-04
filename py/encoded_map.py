@@ -120,7 +120,7 @@ def fixedToFloat(v):
 
 def main():
     dims = 257 * 4
-    noise_map = create_noise_map(dims, 32.0, 16)
+    noise_map = create_noise_map(dims, 128.0, 8)
     normal_map = calculate_normals(noise_map, dims)
     img = Image.new('RGBA', (dims, dims))
     for x in range(dims):

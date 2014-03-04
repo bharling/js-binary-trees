@@ -10,7 +10,7 @@ def rgToFloat(v):
 
 def getHeight(x,y,img):
     pix = img.getpixel((x,y))
-    return rgToFloat((pix[0], pix[1]))
+    return rgToFloat((pix[0], pix[1])) * 100.0
     #return img.getpixel((x,y))[3] / 255.0
 
 
@@ -31,7 +31,7 @@ def traverseVariance( apexX, apexY, leftX, leftY, rightX, rightY, img, depth, ma
         v = max(v, computeVariance( centerX, centerY, apexX, apexY, leftX, leftY, img ));
         v = max(v, computeVariance( centerX, centerY, rightX, rightY, apexX, apexY, img ));
     ret = "0"
-    if v > 2.0:
+    if v > 80.0:
         ret = "1"
     if ret == "0" or depth >= maxdepth:
         return "0"
