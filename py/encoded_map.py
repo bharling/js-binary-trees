@@ -133,13 +133,29 @@ def main():
     img.save('heightmap.png', 'PNG')
 
 
+def from_image( imageFileName ):
+    import numpy as np
+    
+    with open( 'testmap.raw' , 'rb') as f:
+        ar = np.fromfile(f, dtype=np.uint16, count=1028*1028)
+        img = Image.new('RGB', (1028,1028))
+        
+        for x in range(1028):
+            for y in range(1028):
+                h = ar[x + (y*1028)] / 65536.0
+                R,G = storerg(floatToRG(h))
+                img.putpixel((x,y), (R,G,0))
+                
+        img.save('heightmap.png', 'PNG')
+    
+
 if __name__=='__main__':
     print rgToFloat(loadrg(storerg(floatToRG(1.0))))
     print fixedToFloat(load(store(floatToFixed(0.0))))
     print fixedToFloat(load(store(floatToFixed(0.5))))
     print fixedToFloat(load(store(floatToFixed(1.0/3))))
     
-    main()
+    from_image('')
     
 
     

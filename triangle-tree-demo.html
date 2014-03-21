@@ -262,6 +262,16 @@
 						three.scene.add(cpatch.object);
 						lod_objects.push(cpatch.object);
 					}
+					
+					var g = new THREE.PlaneGeometry(1028,1028);
+					var mat = new THREE.MeshBasicMaterial({color:0x0000ff});
+					var m = new THREE.Mesh(g, mat);
+					m.rotation.x = -90*Math.PI/180.0;
+					m.position.x += (1028/2);
+					m.position.z += (1028/2);
+					m.position.y += 200;
+					three.scene.add( m );
+					
 				});
 			}
 			

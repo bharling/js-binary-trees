@@ -63,7 +63,7 @@ def buildTiles( imgPath, size=257 ):
     
     num_tiles = width / size
     tilesdata = []
-    detail_levels = [(12, 200), (8, 400), (4, 800)]
+    detail_levels = [(16, 200), (8, 400), (4, 800)]
     x = y = 0
     for x in range(num_tiles):
         for y in range(num_tiles):
