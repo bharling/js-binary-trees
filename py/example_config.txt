@@ -1,0 +1,4 @@
+{
+	"displacement": "C:\\Users\\Hens\\Desktop\\testmap.tif",
+	"dimensions" : 256.0
+}
